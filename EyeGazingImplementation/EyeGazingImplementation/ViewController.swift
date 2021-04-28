@@ -19,12 +19,14 @@ class ViewController: UIViewController {
 //    var leftEyeNode = SCNNode()
 //    var rightEyeNode = SCNNode()
     var timer = 5
+    var positions: Array<simd_float2> = Array()
+    let numPositions = 10;
     
     func resetTimer(){
         self.timer = 5
     }
     var leftEyeNode: SCNNode = {
-        let geometry = SCNCone(topRadius: 0.005, bottomRadius: 0, height: 0.1)
+        let geometry = SCNCone(topRadius: 0.005, bottomRadius: 0, height: 0.3)
         geometry.radialSegmentCount = 3
         geometry.firstMaterial?.diffuse.contents = UIColor.red
         let node = SCNNode()
@@ -37,7 +39,7 @@ class ViewController: UIViewController {
     }()
 
     var rightEyeNode: SCNNode = {
-        let geometry = SCNCone(topRadius: 0.005, bottomRadius: 0, height: 0.1)
+        let geometry = SCNCone(topRadius: 0.005, bottomRadius: 0, height: 0.3)
         geometry.radialSegmentCount = 3
         geometry.firstMaterial?.diffuse.contents = UIColor.blue
         let node = SCNNode()
@@ -146,13 +148,15 @@ class ViewController: UIViewController {
         points = points.suffix(50).map {$0}
 
         print("POINT : \(point)")
+        print(("points : \(points.average())"))
         print("GRREN FRAME : \(greenFrame)")
-        print("GRREN FRAME : \(orangeFrame)")
+        print("ORANGE FRAME : \(orangeFrame)")
 //        print("GRREN FRAME : \(greenFrame.midX)")
 //        print("GRREN FRAME : \(greenFrame.midY)")
         
         DispatchQueue.main.async {
-            self.crosshair.center = self.points.average()
+//            self.crosshair.center = self.points.average()
+            self.crosshair.center = point
             
             UIView.animate(withDuration: 0.5, animations: {
                 if(self.greenFrame.contains(point)){
@@ -240,33 +244,91 @@ extension ViewController{
         
 //        print("LEFT : \(leftEyeResult.count) :: RIGHT : \(rightEyeResult.count)")
         if leftEyeResult.count > 0 || rightEyeResult.count > 0 {
+            var coords = screenPositionFromHittest(leftEyeResult[0], secondResult:rightEyeResult[0])
+            print("x:\(coords.x) y: \(coords.y)")
 
-            guard let leftResult = leftEyeResult.first, let rightResult = rightEyeResult.first else {
-                return
-            }
+//            guard let leftResult = leftEyeResult.first, let rightResult = rightEyeResult.first else {
+//                return
+//            }
+//            leftEyeLocation.x = CGFloat(leftResult.localCoordinates.x) / (Constants.Device.screenSize.width / 2) *
+//                Constants.Device.frameSize.width
+//            leftEyeLocation.y = CGFloat(leftResult.localCoordinates.y) / (Constants.Device.screenSize.height / 2) *
+//                Constants.Device.frameSize.height
+//
+//            rightEyeLocation.x = CGFloat(rightResult.localCoordinates.x) / (Constants.Device.screenSize.width / 2) *
+//                Constants.Device.frameSize.width
+//            rightEyeLocation.y = CGFloat(rightResult.localCoordinates.y) / (Constants.Device.screenSize.height / 2) *
+//                Constants.Device.frameSize.height
+//
+//            let point: CGPoint = {
+//                var point = CGPoint()
+//                let pointX = ((leftEyeLocation.x + rightEyeLocation.x) / 2)
+//                let pointY = -(leftEyeLocation.y + rightEyeLocation.y) / 2
+//
+//                point.x = pointX.clamped(to: Constants.Ranges.widthRange)
+//                point.y = pointY.clamped(to: Constants.Ranges.heightRange)
+//                return point
+//            }()
+            
+            DispatchQueue.main.async(execute: {() -> Void in
+                self.crosshair.center = CGPoint.init(x: CGFloat(coords.x), y:CGFloat(coords.y))
+                UIView.animate(withDuration: 0.5, animations: {
+                    if(self.greenFrame.contains(self.crosshair.center)){
+                        self.orangeView.backgroundColor = UIColor.orange
+                        self.greenView.backgroundColor = UIColor.blue
+                        print("You touch this GREEN, Game over!")
+                        
+                    }
+                    
+                    if(self.orangeFrame.contains(self.crosshair.center)){
+                        self.greenView.backgroundColor = UIColor.green
+                        self.orangeView.backgroundColor = UIColor.red
+                        print("You touch this ORANGE, Game over!")
+                        self.timer = self.timer + 1
+                    }
+                })
+            })
+            
 
-            leftEyeLocation.x = CGFloat(leftResult.localCoordinates.x) / (Constants.Device.screenSize.width / 2) *
-                Constants.Device.frameSize.width
-            leftEyeLocation.y = CGFloat(leftResult.localCoordinates.y) / (Constants.Device.screenSize.height / 2) *
-                Constants.Device.frameSize.height
-
-            rightEyeLocation.x = CGFloat(rightResult.localCoordinates.x) / (Constants.Device.screenSize.width / 2) *
-                Constants.Device.frameSize.width
-            rightEyeLocation.y = CGFloat(rightResult.localCoordinates.y) / (Constants.Device.screenSize.height / 2) *
-                Constants.Device.frameSize.height
-
-            let point: CGPoint = {
-                var point = CGPoint()
-                let pointX = ((leftEyeLocation.x + rightEyeLocation.x) / 2)
-                let pointY = -(leftEyeLocation.y + rightEyeLocation.y) / 2
-
-                point.x = pointX.clamped(to: Constants.Ranges.widthRange)
-                point.y = pointY.clamped(to: Constants.Ranges.heightRange)
-                return point
-            }()
-
-            setNewPoint(point)
+//            setNewPoint(point)
+            
         }
+    }
+    
+    func screenPositionFromHittest(_ result1: SCNHitTestResult, secondResult result2: SCNHitTestResult) -> simd_float2 {
+        let iPhoneXPointSize = simd_float2(375, 812)  // size of iPhoneX in points
+        let iPhoneXMeterSize = simd_float2(0.0623908297, 0.135096943231532)
+
+        let xLC = ((result1.localCoordinates.x + result2.localCoordinates.x) / 2.0)
+        var x = xLC / (iPhoneXMeterSize.x / 2.0) * iPhoneXPointSize.x
+        
+        let yLC = -((result1.localCoordinates.y + result2.localCoordinates.y) / 2.0);
+        var y = yLC / (iPhoneXMeterSize.y / 2.0) * iPhoneXPointSize.y + 312
+        
+        // The 312 points adjustment above is presumably to adjust for the Extrinsics on the iPhone camera.
+        // I didn't calculate them and instead ripped them from :
+        // https://github.com/virakri/eye-tracking-ios-prototype/blob/master/Eyes%20Tracking/ViewController.swift
+        // Probably better to get real values from measuring the camera position to the center of the screen.
+        
+        x = Float.maximum(Float.minimum(x, iPhoneXPointSize.x-1), 0)
+        y = Float.maximum(Float.minimum(y, iPhoneXPointSize.y-1), 0)
+        
+        // Do just a bit of smoothing. Nothing crazy.
+        positions.append(simd_float2(x,y));
+        if positions.count > numPositions {
+            positions.removeFirst()
+        }
+        
+        var total = simd_float2(0,0);
+        for pos in positions {
+            total.x += pos.x
+            total.y += pos.y
+        }
+        
+        total.x /= Float(positions.count)
+        total.y /= Float(positions.count)
+        
+        return total
     }
 }
 
