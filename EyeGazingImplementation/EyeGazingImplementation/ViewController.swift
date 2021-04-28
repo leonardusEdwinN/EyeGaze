@@ -84,9 +84,14 @@ class ViewController: UIViewController {
         }
         sceneView.delegate = self
         setupView()
-        getFrame()
+        
 //        setupEyeNode()
         sceneView.pointOfView?.addChildNode(nodeInFrontOfScreen)
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        getFrame()
+        print("GREEN : \(self.greenFrame.origin.x) :: \(self.greenFrame.origin.y)")
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -102,9 +107,11 @@ class ViewController: UIViewController {
     }
     
     func getFrame(){
-        self.greenFrame = CGRect(x: greenView.frame.midX, y: greenView.frame.midY, width: greenView.frame.width, height: greenView.frame.height)
+        self.greenFrame = CGRect(origin: greenView.center, size: CGSize(width: greenView.frame.width, height: greenView.frame.height))
+        self.orangeFrame = CGRect(origin: orangeView.center, size: CGSize(width: orangeView.frame.width, height: orangeView.frame.height))
+//        self.greenFrame = CGRect(x: greenView.frame.midX, y: greenView.frame.midY, width: greenView.frame.width, height: greenView.frame.height)
         
-        self.orangeFrame = CGRect(x: self.orangeView.frame.midX, y: self.orangeView.frame.midY, width: self.orangeView.frame.width, height: self.orangeView.frame.height)
+//        self.orangeFrame = CGRect(x: self.orangeView.frame.midX, y: self.orangeView.frame.midY, width: self.orangeView.frame.width, height: self.orangeView.frame.height)
     }
     
     
@@ -139,12 +146,15 @@ class ViewController: UIViewController {
         points = points.suffix(50).map {$0}
 
         print("POINT : \(point)")
+        print("GRREN FRAME : \(greenFrame)")
+        print("GRREN FRAME : \(orangeFrame)")
+//        print("GRREN FRAME : \(greenFrame.midX)")
+//        print("GRREN FRAME : \(greenFrame.midY)")
         
         DispatchQueue.main.async {
+            self.crosshair.center = self.points.average()
+            
             UIView.animate(withDuration: 0.5, animations: {
-                self.crosshair.center = self.points.average()
-                
-                
                 if(self.greenFrame.contains(point)){
                     self.orangeView.backgroundColor = UIColor.orange
                     self.greenView.backgroundColor = UIColor.blue
